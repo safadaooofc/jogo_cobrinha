@@ -3,103 +3,425 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Snake Game</title>
+<title>Snake Deluxe</title>
 <style>
-  :root{--bg:#f6f7fb;--panel:#fff;--ink:#222}
+  :root{
+    --bg:#f6f7fb; --panel:#ffffff; --ink:#111; --grid-a:#f1f1f1; --grid-b:#ffffff;
+    --accent:#2e7d32;
+  }
+  .dark{
+    --bg:#0f1116; --panel:#161a22; --ink:#e9eefb; --grid-a:#141824; --grid-b:#10131c;
+    --accent:#7ddf78;
+  }
   *{box-sizing:border-box}
   body{margin:0;min-height:100svh;display:grid;place-items:center;background:var(--bg);
-       font:16px/1.4 system-ui,Segoe UI,Arial}
+       color:var(--ink);font:15px/1.4 system-ui,Segoe UI,Arial}
   .wrap{display:grid;gap:.5rem;place-items:center;padding:1rem}
-  .score{font-weight:600;color:var(--ink)}
-  canvas{background:var(--panel);border:2px solid #333;border-radius:12px;image-rendering:pixelated;
-         width:min(92vmin,520px);height:auto}
-  kbd{background:#eee;border-radius:6px;padding:.15rem .4rem;border:1px solid #ccc}
+  h1{margin:.2rem 0}
+  #hud{font-weight:700}
+  canvas{background:var(--panel);border:2px solid #333;border-radius:12px;
+         image-rendering:pixelated;width:min(94vmin,560px);height:auto}
+  /* modal */
+  .modal{position:fixed;inset:0;display:none;place-items:center;background:#0008;z-index:10}
+  .modal.open{display:grid}
+  .card{background:var(--panel);color:var(--ink);min-width:min(92vw,620px);
+        border-radius:16px;padding:16px;box-shadow:0 10px 30px #0006}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:.35rem 0}
+  .pill{padding:.35rem .6rem;border-radius:999px;border:1px solid #0002;cursor:pointer}
+  .pill:hover{transform:translateY(-1px)}
+  input[type=range]{width:120px}
+  .muted{opacity:.8;font-size:.9em}
+  kbd{background:#eee;border:1px solid #ccc;border-bottom-color:#bbb;border-radius:6px;padding:.1rem .35rem}
+  .toolbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;justify-content:center}
+  .btn{background:var(--accent);color:#072b05;border:none;border-radius:999px;padding:.5rem .8rem;
+       cursor:pointer;font-weight:700}
+  .btn.secondary{background:transparent;color:var(--ink);border:1px solid #0003}
+  .spacer{flex:1}
 </style>
 </head>
 <body>
   <div class="wrap">
-    <h1 style="margin:.2rem 0">🐍 Snake</h1>
-    <div class="score" id="hud">Score: 0 | High: 0</div>
-    <canvas id="game" width="400" height="400" aria-label="tabuleiro do jogo"></canvas>
-    <div style="font-size:14px;color:#555">Use as setas <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd></div>
+    <h1>🐍 Snake Deluxe</h1>
+    <div id="hud">Score: 0 | High: 0 — <span class="muted">Pressione <kbd>↑ ↓ ← →</kbd>. Menu: <kbd>X</kbd></span></div>
+    <canvas id="game" width="480" height="480" aria-label="tabuleiro do jogo"></canvas>
+    <div class="toolbar">
+      <button id="toggleMenu" class="btn secondary">⚙️ Configurações (X)</button>
+      <button id="toggleTheme" class="btn secondary">🌙 Tema</button>
+      <button id="fullscreenBtn" class="btn secondary">⛶ Tela cheia</button>
+      <button id="resetScore" class="btn secondary">🗑️ Limpar High Score</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIG -->
+  <div id="modal" class="modal">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <strong>Configurações</strong>
+        <button id="closeMenu" class="btn secondary">Fechar (X)</button>
+      </div>
+
+      <div class="row"><strong>Cores da cobrinha</strong></div>
+      <div class="row">
+        <button class="pill preset" data-r="46" data-g="125" data-b="50">Verde</button>
+        <button class="pill preset" data-r="41" data-g="98" data-b="255">Azul</button>
+        <button class="pill preset" data-r="156" data-g="39" data-b="176">Roxo</button>
+        <button class="pill preset" data-r="255" data-g="111" data-b="0">Laranja</button>
+        <button class="pill preset" data-r="220" data-g="20" data-b="60">Vermelho</button>
+      </div>
+      <div class="row">
+        R <input id="r" type="range" min="0" max="255">
+        G <input id="g" type="range" min="0" max="255">
+        B <input id="b" type="range" min="0" max="255">
+        <span id="colorPreview" class="pill" style="width:46px"></span>
+      </div>
+
+      <div class="row"><strong>Frutas (gif pixelado)</strong></div>
+      <div class="row">
+        <select id="fruitSel">
+          <option value="apple">🍎 Maçã</option>
+          <option value="banana">🍌 Banana</option>
+          <option value="cherry">🍒 Cereja</option>
+          <option value="orange">🍊 Laranja</option>
+          <option value="grape">🍇 Uva</option>
+          <option value="strawberry">🍓 Morango</option>
+        </select>
+        <span class="muted">• As frutas têm animação estilo “gif pixelado”.</span>
+      </div>
+
+      <div class="row"><strong>Visual</strong></div>
+      <div class="row">
+        <button id="themeLight" class="pill">Claro</button>
+        <button id="themeDark" class="pill">Escuro</button>
+        <button id="toggleGrid" class="pill">Fundo quadriculado</button>
+      </div>
+
+      <div class="row"><strong>Jogo</strong></div>
+      <div class="row">
+        <label class="pill"><input id="hardMode" type="checkbox"> Modo difícil (mais rápido)</label>
+        <button id="applyNow" class="btn">Aplicar</button>
+        <div class="spacer"></div>
+        <button id="resetPrefs" class="btn secondary">Restaurar padrão</button>
+      </div>
+    </div>
   </div>
 
 <script>
 (() => {
+  // ===== Canvas e estado =====
   const cvs = document.getElementById('game');
   const ctx = cvs.getContext('2d');
   const hud = document.getElementById('hud');
-  const sz = 20;                     // tamanho de cada célula (px)
-  const COLS = cvs.width / sz, ROWS = cvs.height / sz;
+  const S = 20;                         // tamanho da célula
+  const COLS = cvs.width / S, ROWS = cvs.height / S;
 
-  let snake, dir, food, score, high;
+  let snake, dir, food, score, high, cfg, tickMs, gridOn = true, t = 0;
 
-  const r = n => Math.floor(Math.random()*n);
-  const loadHigh = () => Number(localStorage.getItem('snakeHigh')||0);
-  const saveHigh = v => localStorage.setItem('snakeHigh', v);
+  // ===== “GIFs” pixelados (sprites animados)
+  // Renderizamos manualmente 4 frames por fruta para simular GIF pixelado.
+  // Cada frame é desenhado diretamente no canvas (sem depender de imagens externas).
+  const FRUITS = {
+    apple:  { frames: appleFrames,  w:16, h:16 },
+    banana: { frames: bananaFrames, w:16, h:16 },
+    cherry: { frames: cherryFrames, w:16, h:16 },
+    orange: { frames: orangeFrames, w:16, h:16 },
+    grape:  { frames: grapeFrames,  w:16, h:16 },
+    strawberry:{ frames: strawberryFrames, w:16, h:16 },
+  };
+
+  function pixel(ctx,x,y,c){ ctx.fillStyle=c; ctx.fillRect(x,y,1,1); }
+
+  // ----- frames de frutas (estilo 16x16, bem simples + pulsar/balançar)
+  function appleFrames(f){ // f: 0..3
+    const ox = Math.sin((f/4)*Math.PI*2)*0.5; // balancinho
+    ctx.save(); ctx.translate(ox,0); 
+    for(let i=0;i<16;i++)for(let j=0;j<16;j++){
+      // corpo
+      if((i-8)**2 + (j-9)**2 < 26) pixel(ctx,i,j,"#d62828");
+    }
+    // brilho
+    pixel(ctx,5,8,"#ff9aa2"); pixel(ctx,6,7,"#ff9aa2");
+    // talo/folha
+    pixel(ctx,8,3,"#3e2723"); pixel(ctx,9,3,"#3e2723");
+    pixel(ctx,10,4,"#2e7d32"); pixel(ctx,11,5,"#2e7d32");
+    ctx.restore();
+  }
+  function bananaFrames(f){
+    const up = (f%2)?0:1;
+    ctx.save(); ctx.translate(0,up);
+    for(let i=3;i<13;i++){ pixel(ctx,i,9, "#fdd835"); pixel(ctx,i,10, "#fbc02d"); }
+    for(let i=4;i<12;i++){ pixel(ctx,i,8, "#fdd835"); pixel(ctx,i,11, "#fbc02d"); }
+    pixel(ctx,3,8,"#6d4c41"); pixel(ctx,12,11,"#6d4c41");
+    ctx.restore();
+  }
+  function cherryFrames(f){
+    const p = (f%4)-1.5; // balanço da haste
+    ctx.save();
+    // frutos
+    for(let i=0;i<16;i++)for(let j=0;j<16;j++){
+      if((i-6)**2 + (j-10)**2 < 12) pixel(ctx,i,j,"#c62828");
+      if((i-10)**2 + (j-10)**2 < 12) pixel(ctx,i,j,"#e53935");
+    }
+    // brilho
+    pixel(ctx,4,9,"#ff8a80"); pixel(ctx,8,9,"#ffcdd2");
+    // haste
+    ctx.strokeStyle="#2e7d32"; ctx.lineWidth=1; ctx.beginPath();
+    ctx.moveTo(8,6); ctx.quadraticCurveTo(8+p,2,12,2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8,6); ctx.quadraticCurveTo(8+p,2,4,2); ctx.stroke();
+    ctx.restore();
+  }
+  function orangeFrames(f){
+    const r = 26 + (f%2)*2;
+    for(let i=0;i<16;i++)for(let j=0;j<16;j++){
+      if((i-8)**2 + (j-8)**2 < r) pixel(ctx,i,j,"#fb8c00");
+    }
+    pixel(ctx,5,7,"#ffe0b2"); pixel(ctx,6,6,"#ffe0b2");
+  }
+  function grapeFrames(f){
+    // cachos (pisca suave)
+    const shades = ["#6a1b9a","#7b1fa2","#8e24aa","#7b1fa2"];
+    const C = shades[f%4];
+    const pts = [[6,7],[8,7],[5,9],[7,9],[9,9],[6,11],[8,11]];
+    pts.forEach(([x,y])=>{
+      for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){
+        if(i*i+j*j<=3) pixel(ctx,x+i,y+j,C);
+      }
+    });
+    // folhinha
+    pixel(ctx,8,4,"#2e7d32"); pixel(ctx,9,4,"#2e7d32"); pixel(ctx,9,5,"#2e7d32");
+  }
+  function strawberryFrames(f){
+    const up = (f%2)?0:1;
+    ctx.save(); ctx.translate(0,up);
+    for(let i=0;i<16;i++)for(let j=0;j<16;j++){
+      if((i-8)**2 + (j-9)**2 < 22) pixel(ctx,i,j,"#e53935");
+    }
+    // sementes
+    [["#ffeb3b",6,8],["#ffeb3b",10,10],["#ffeb3b",9,7],["#ffeb3b",7,11]].forEach(([c,x,y])=>pixel(ctx,x,y,c));
+    // folhas
+    pixel(ctx,7,3,"#2e7d32"); pixel(ctx,8,3,"#2e7d32"); pixel(ctx,9,3,"#2e7d32");
+    pixel(ctx,6,4,"#2e7d32"); pixel(ctx,10,4,"#2e7d32");
+    ctx.restore();
+  }
+
+  function drawFruit(type, gx, gy){
+    const spec = FRUITS[type] || FRUITS.apple;
+    // desenha o sprite 16x16 escalado para a célula
+    ctx.save();
+    ctx.translate(gx*S, gy*S);
+    ctx.imageSmoothingEnabled = false;
+    // desenhar no espaço 16x16 e depois escalar com drawImage de um offscreen?
+    // mais simples: usar scale para encaixar na célula
+    ctx.scale(S/16, S/16);
+    spec.frames(t%4);         // chama a função de frame
+    ctx.restore();
+  }
+
+  // ===== Persistência =====
+  const LS = {
+    get(k, d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch{ return d; } },
+    set(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+  };
+
+  // ===== Config padrão =====
+  function defaultCfg(){
+    return {
+      color:{r:46,g:125,b:50},
+      fruit:"apple",
+      theme:"light",
+      hard:false
+    };
+  }
+
+  // ===== Inicialização / reset =====
+  function reset(){
+    snake=[{x:Math.floor(COLS/2), y:Math.floor(ROWS/2)}];
+    dir={x:0,y:0};
+    placeFood();
+    score=0;
+    high=Number(localStorage.getItem("snakeHigh")||0);
+    cfg = LS.get("snakeCfg", defaultCfg());
+    applyTheme(cfg.theme);
+    tickMs = cfg.hard ? 80 : 120;
+    updateHUD();
+    draw();
+  }
 
   function placeFood(){
-    let f;
-    do { f = {x:r(COLS), y:r(ROWS)}; }
-    while (snake.some(s=>s.x===f.x && s.y===f.y));
-    return f;
+    do {
+      food = { x: (Math.random()*COLS|0), y: (Math.random()*ROWS|0) };
+    } while (snake.some(s=>s.x===food.x && s.y===food.y));
   }
 
-  function reset(){
-    snake = [{x:Math.floor(COLS/2), y:Math.floor(ROWS/2)}];
-    dir = {x:0,y:0}; // parado até apertar seta
-    food = placeFood();
-    score = 0;
-    high = loadHigh();
-    draw(); updateHUD();
+  // ===== Desenho =====
+  function drawBoard(){
+    if(!gridOn){ ctx.clearRect(0,0,cvs.width,cvs.height); ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--panel'); ctx.fillRect(0,0,cvs.width,cvs.height); return; }
+    for(let y=0;y<ROWS;y++){
+      for(let x=0;x<COLS;x++){
+        ctx.fillStyle = ((x+y)&1) ? getCSS('--grid-a') : getCSS('--grid-b');
+        ctx.fillRect(x*S,y*S,S,S);
+      }
+    }
   }
-
-  function updateHUD(){ hud.textContent = `Score: ${score} | High: ${Math.max(high,score)}`; }
+  function getCSS(varName){ return getComputedStyle(document.body).getPropertyValue(varName).trim(); }
 
   function draw(){
-    ctx.clearRect(0,0,cvs.width,cvs.height);
-    // comida
-    ctx.fillStyle = '#e53935';
-    ctx.fillRect(food.x*sz, food.y*sz, sz, sz);
-    // cobra (cabeça verde escuro, corpo verde claro)
+    drawBoard();
+    // fruta animada
+    drawFruit(cfg.fruit, food.x, food.y);
+    // cobra
+    ctx.fillStyle = `rgb(${cfg.color.r},${cfg.color.g},${cfg.color.b})`;
     snake.forEach((s,i)=>{
-      ctx.fillStyle = i? '#43a047' : '#2e7d32';
-      ctx.fillRect(s.x*sz, s.y*sz, sz, sz);
+      ctx.fillRect(s.x*S, s.y*S, S, S);
+      if(i===0){ // olho simples
+        ctx.fillStyle="#000"; ctx.fillRect(s.x*S+S/3, s.y*S+S/3, 2, 2);
+        ctx.fillRect(s.x*S+S/3+6, s.y*S+S/3, 2, 2);
+        ctx.fillStyle=`rgb(${cfg.color.r},${cfg.color.g},${cfg.color.b})`;
+      }
     });
-    // dica inicial
-    if (!dir.x && !dir.y){
-      ctx.fillStyle = '#555'; ctx.font='14px system-ui'; ctx.textAlign='center';
-      ctx.fillText('Pressione as setas para começar', cvs.width/2, cvs.height-10);
-    }
+    updateHUD();
+  }
+
+  function updateHUD(){
+    hud.textContent = `Score: ${score} | High: ${Math.max(high,score)} — Pressione ↑ ↓ ← →. Menu: X`;
+  }
+
+  // ===== Loop =====
+  let timer = null;
+  function startLoop(){
+    if(timer) clearInterval(timer);
+    timer = setInterval(()=>{
+      step();
+      t=(t+1)&15; // avança frames das frutas
+    }, tickMs);
   }
 
   function step(){
-    if (!dir.x && !dir.y) return draw();           // ainda parado
-    const head = {x:snake[0].x+dir.x, y:snake[0].y+dir.y};
+    if(!dir.x && !dir.y){ draw(); return; }
+    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
 
-    // colisão parede / corpo
-    if (head.x<0 || head.y<0 || head.x>=COLS || head.y>=ROWS ||
-        snake.some(s=>s.x===head.x && s.y===head.y)){
-      if (score>high) saveHigh(score);
+    // colisão
+    if(head.x<0 || head.y<0 || head.x>=COLS || head.y>=ROWS ||
+       snake.some(s=>s.x===head.x && s.y===head.y)){
+      if(score>high){ high=score; localStorage.setItem("snakeHigh", high); }
       return reset();
     }
 
     snake.unshift(head);
-    if (head.x===food.x && head.y===food.y){ score++; food = placeFood(); }
-    else { snake.pop(); }
 
-    updateHUD(); draw();
+    // comer
+    if(head.x===food.x && head.y===food.y){
+      score++;
+      placeFood();
+    } else {
+      snake.pop();
+    }
+    draw();
   }
 
+  // ===== Controles =====
   addEventListener('keydown', e=>{
-    if (e.key==='ArrowLeft'  && dir.x!== 1) dir={x:-1,y: 0};
-    if (e.key==='ArrowUp'    && dir.y!== 1) dir={x: 0,y:-1};
-    if (e.key==='ArrowRight' && dir.x!==-1) dir={x: 1,y: 0};
-    if (e.key==='ArrowDown'  && dir.y!==-1) dir={x: 0,y: 1};
+    if(["ArrowLeft","ArrowUp","ArrowRight","ArrowDown"," "].includes(e.key)) e.preventDefault();
+    if(e.key==="ArrowLeft" && dir.x!==1)  dir={x:-1,y:0};
+    if(e.key==="ArrowUp" && dir.y!==1)    dir={x:0,y:-1};
+    if(e.key==="ArrowRight" && dir.x!==-1)dir={x:1,y:0};
+    if(e.key==="ArrowDown" && dir.y!==-1) dir={x:0,y:1};
+    if(e.key.toLowerCase()==="x") toggleMenu();
+  }, {passive:false});
+
+  // ===== Tema / Tela cheia =====
+  function applyTheme(theme){
+    document.body.classList.toggle('dark', theme==="dark");
+  }
+
+  document.getElementById('toggleTheme').onclick = ()=>{
+    cfg.theme = (cfg.theme==="dark"?"light":"dark");
+    applyTheme(cfg.theme);
+    saveCfg();
+    draw();
+  };
+
+  document.getElementById('fullscreenBtn').onclick = async ()=>{
+    if(!document.fullscreenElement){ await document.documentElement.requestFullscreen().catch(()=>{}); }
+    else { await document.exitFullscreen().catch(()=>{}); }
+  };
+
+  // ===== Modal Config =====
+  const modal = document.getElementById('modal');
+  const toggleBtn = document.getElementById('toggleMenu');
+  const closeBtn = document.getElementById('closeMenu');
+  function toggleMenu(){ modal.classList.toggle('open'); }
+  toggleBtn.onclick = toggleMenu; closeBtn.onclick = toggleMenu;
+
+  // presets
+  const rEl = document.getElementById('r'), gEl = document.getElementById('g'), bEl = document.getElementById('b');
+  const colorPrev = document.getElementById('colorPreview');
+  const fruitSel = document.getElementById('fruitSel');
+  const hardEl = document.getElementById('hardMode');
+  const themeLight = document.getElementById('themeLight');
+  const themeDark  = document.getElementById('themeDark');
+  const toggleGridBtn = document.getElementById('toggleGrid');
+
+  function syncSliders(){
+    rEl.value = cfg.color.r; gEl.value = cfg.color.g; bEl.value = cfg.color.b;
+    colorPrev.style.background = `rgb(${cfg.color.r},${cfg.color.g},${cfg.color.b})`;
+    fruitSel.value = cfg.fruit;
+    hardEl.checked = !!cfg.hard;
+  }
+
+  function saveCfg(){
+    LS.set("snakeCfg", cfg);
+  }
+
+  [rEl,gEl,bEl].forEach(el=>el.addEventListener('input', ()=>{
+    cfg.color = { r:+rEl.value, g:+gEl.value, b:+bEl.value };
+    colorPrev.style.background = `rgb(${cfg.color.r},${cfg.color.g},${cfg.color.b})`;
+    saveCfg(); draw();
+  }));
+
+  document.querySelectorAll('.preset').forEach(btn=>{
+    btn.onclick = ()=>{
+      cfg.color = { r:+btn.dataset.r, g:+btn.dataset.g, b:+btn.dataset.b };
+      syncSliders(); saveCfg(); draw();
+    };
   });
 
+  fruitSel.onchange = ()=>{ cfg.fruit = fruitSel.value; saveCfg(); draw(); };
+
+  themeLight.onclick = ()=>{ cfg.theme="light"; applyTheme(cfg.theme); saveCfg(); draw(); };
+  themeDark.onclick  = ()=>{ cfg.theme="dark";  applyTheme(cfg.theme); saveCfg(); draw(); };
+
+  toggleGridBtn.onclick = ()=>{ gridOn = !gridOn; draw(); };
+
+  document.getElementById('applyNow').onclick = ()=>{
+    cfg.hard = !!hardEl.checked;
+    tickMs = cfg.hard ? 80 : 120;
+    saveCfg();
+    startLoop();
+    draw();
+  };
+
+  document.getElementById('resetPrefs').onclick = ()=>{
+    cfg = defaultCfg();
+    gridOn = true;
+    saveCfg();
+    applyTheme(cfg.theme);
+    syncSliders();
+    tickMs = cfg.hard ? 80 : 120;
+    draw();
+  };
+
+  document.getElementById('resetScore').onclick = ()=>{
+    localStorage.removeItem('snakeHigh');
+    high = 0; updateHUD();
+  };
+
+  // atalhos para fechar modal
+  modal.addEventListener('click', (e)=>{ if(e.target===modal) toggleMenu(); });
+
+  // ===== Start =====
   reset();
-  setInterval(step, 110);
+  syncSliders();
+  startLoop();
 })();
 </script>
 </body>
