@@ -1,14 +1,12 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
+const { app, BrowserWindow } = require("electron");
 
-function createWindow(){
+function createWindow() {
   const win = new BrowserWindow({
-    width: 520, height: 600, resizable: false,
-    webPreferences: { contextIsolation: true } // seguro e suficiente p/ HTML puro
+    width: 500,
+    height: 600,
+    resizable: true
   });
-  win.loadFile(path.join(__dirname, 'snake.html')); // caminho correto evita tela branca
-  // win.webContents.openDevTools(); // descomente para ver erros de console
+  win.loadFile("snake_deluxe.html");
 }
 
 app.whenReady().then(createWindow);
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

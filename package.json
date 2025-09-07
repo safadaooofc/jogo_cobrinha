@@ -1,12 +1,24 @@
 {
-  "name": "snake-app",
+  "name": "snake-deluxe",
   "version": "1.0.0",
   "main": "main.js",
-  "private": true,
-  "scripts": {
-    "start": "electron ."
-  },
+  "description": "jogo da cobrinha",
   "devDependencies": {
     "electron": "^38.0.0"
-  }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/safadaooofc/jogo_cobrinha.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/safadaooofc/jogo_cobrinha/issues"
+  },
+  "homepage": "https://github.com/safadaooofc/jogo_cobrinha#readme"
 }
