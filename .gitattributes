@@ -1,2 +1,30 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Arquivos de sistema e temporários
+.DS_Store
+thumbs.db
+
+# Logs
+*.log
+log/
+
+# Dependências de pacotes (se houver)
+node_modules/
+bower_components/
+
+# Arquivos de build
+build/
+dist/
+
+# Arquivos de configuração de IDEs
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Arquivos gerados pelo sistema
+*.swp
+*.swo
+
+# Outros
+*.bak
+*.tmp
+
